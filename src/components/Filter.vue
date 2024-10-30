@@ -1,5 +1,22 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { initializeApp } from 'firebase/app';
+import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
+
+// Din Firebase-konfiguration (erstat med dine egne credentials)
+const firebaseConfig = {
+    apiKey: "AIzaSyDjpBiMAu5z7lGASSzv3Z-eMqFDYpUgi_0",
+    authDomain: "camelina-godkendt.firebaseapp.com",
+    databaseURL: "https://camelina-godkendt-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "camelina-godkendt",
+    storageBucket: "camelina-godkendt.appspot.com",
+    messagingSenderId: "393442725508",
+    appId: "1:393442725508:web:f25b640497b175756b7cd1"
+};
+
+// Initialiser Firebase-appen
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
 
 // Separate ingredienser for at undgå gentagelse
 const ingredientsList = {
@@ -29,13 +46,19 @@ const ingredientsList = {
 };
 
 // Opskrifter med referencer til `ingredientsList`, gør det til en reaktiv variabel
-const recipes = ref([
-  { id: 1, name: 'Spaghetti Carbonara', ingredients: [ingredientsList.spaghetti, ingredientsList.æg, ingredientsList.bacon, ingredientsList.parmesan, ingredientsList.fløde] },
-  { id: 2, name: 'Tomatsuppe', ingredients: [ingredientsList.tomat, ingredientsList.løg, ingredientsList.hvidløg, ingredientsList.basilikum, ingredientsList.bouillon] },
-  { id: 3, name: 'Pandekager', ingredients: [ingredientsList.mel, ingredientsList.æg, ingredientsList.mælk, ingredientsList.sukker, ingredientsList.smør] },
-  { id: 4, name: 'Kyllingesalat', ingredients: [ingredientsList.kylling, ingredientsList.salat, ingredientsList.tomat, ingredientsList.agurk, ingredientsList.avocado] },
-  { id: 5, name: 'Lasagne', ingredients: [ingredientsList.pasta, ingredientsList.kød, ingredientsList.tomatsauce, ingredientsList.ost, ingredientsList.bechamelsauce] },
-]);
+const recipes = ref([]);
+
+// Hent data fra Firebase Realtime Database
+const loadRecipesFromFirebase = () => {
+  const recipesRef = dbRef(database, 'recipes');
+  onValue(recipesRef, (snapshot) => {
+    if (snapshot.exists()) {
+      recipes.value = snapshot.val();
+    } else {
+      console.log('No data available');
+    }
+  });
+};
 
 // Reactive variable til søgeterm
 const searchTerm = ref('');
@@ -60,6 +83,10 @@ const filteredRecipes = computed(() => {
   });
 });
 
+// Hent opskrifter, når komponenten loader
+onMounted(() => {
+  loadRecipesFromFirebase();
+});
 </script>
 
 <template>
@@ -86,16 +113,16 @@ const filteredRecipes = computed(() => {
 </template>
 
 <style>
-h1{
-    color:brown;
+h1 {
+  color: brown;
 }
-.filter-input{
-    width: 200px;
-    height: 40px;
+.filter-input {
+  width: 200px;
+  height: 40px;
 }
-.filter-btn{
-    width: 90px;
-    height: 40px;
-    border-radius: 5px;
+.filter-btn {
+  width: 90px;
+  height: 40px;
+  border-radius: 5px;
 }
 </style>
