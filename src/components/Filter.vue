@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref as dbRef, onValue, push } from 'firebase/database';
+import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
 
 // Firebase-konfiguration
 const firebaseConfig = {
@@ -21,14 +21,6 @@ const database = getDatabase(app);
 // Opskrifter, som en reaktiv variabel
 const recipes = ref([]);
 
-// Funktion til at gemme opskrift i Firebase
-const saveRecipeToFirebase = (recipe) => {
-  const recipesRef = dbRef(database, 'recipes');
-  push(recipesRef, recipe)
-    .then(() => console.log("Recipe added successfully"))
-    .catch(error => console.error("Error adding recipe:", error));
-};
-
 // Hent data fra Firebase Realtime Database
 const loadRecipesFromFirebase = () => {
   const recipesRef = dbRef(database, 'recipes');
@@ -43,36 +35,30 @@ const loadRecipesFromFirebase = () => {
 
 // Reactive variable til søgeterm
 const searchTerm = ref('');
+const filteredRecipes = ref([]); // Initialiser den filtrerede liste
 
-// Computed property til filtrerede opskrifter baseret på søgetermen
-const filteredRecipes = computed(() => {
-  if (!searchTerm.value) return recipes.value;
-
-  return recipes.value.filter(recipe => {
+// Funktion til at filtrere opskrifter baseret på søgetermen
+const filterRecipes = () => {
+  if (!searchTerm.value) {
+    filteredRecipes.value = recipes.value; // Returner alle opskrifter, hvis der ikke er nogen søgeterm
+  } else {
     const lowerCaseSearchTerm = searchTerm.value.toLowerCase();
-    const nameMatches = recipe.name.toLowerCase().includes(lowerCaseSearchTerm);
-    const ingredientMatches = recipe.ingredients.some(ingredient =>
-      ingredient.toLowerCase().includes(lowerCaseSearchTerm)
-    );
 
-    return nameMatches || ingredientMatches;
-  });
-});
+    filteredRecipes.value = recipes.value.filter(recipe => {
+      const nameMatches = recipe.name.toLowerCase().includes(lowerCaseSearchTerm);
+      const ingredientMatches = recipe.ingredients.some(ingredient =>
+        ingredient.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+      return nameMatches || ingredientMatches;
+    });
+  }
+};
 
 // Hent opskrifter, når komponenten loader
 onMounted(() => {
   loadRecipesFromFirebase();
+  filterRecipes(); // Sæt initial filtrering
 });
-
-// Eksempel på ny opskrift til tilføjelse
-const newRecipe = {
-  id: recipes.value.length + 1,
-  name: 'Ny Opskrift',
-  ingredients: ['kylling', 'salt', 'peber']
-};
-
-// Tilføj ny opskrift til Firebase
-saveRecipeToFirebase(newRecipe);
 </script>
 
 <template>
@@ -86,7 +72,7 @@ saveRecipeToFirebase(newRecipe);
       class="filter-input"
       v-model="searchTerm"
     />
-    <button class="filter-btn">Søg</button>
+    <button class="filter-btn" @click="filterRecipes">Søg</button>
 
     <!-- Liste over filtrerede opskrifter -->
     <ul>
