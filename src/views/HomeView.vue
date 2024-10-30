@@ -1,9 +1,9 @@
 <script setup>
-import TheWelcome from '../components/TheWelcome.vue'
+import Filter from '../components/Filter.vue'
 </script>
 
 <template>
   <main>
-    <TheWelcome />
+    <Filter />
   </main>
 </template>
