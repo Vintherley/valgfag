@@ -1,59 +1,40 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
+import { getDatabase, ref as dbRef, onValue, push } from 'firebase/database';
 
-// Din Firebase-konfiguration (erstat med dine egne credentials)
+// Firebase-konfiguration
 const firebaseConfig = {
-    apiKey: "AIzaSyDjpBiMAu5z7lGASSzv3Z-eMqFDYpUgi_0",
-    authDomain: "camelina-godkendt.firebaseapp.com",
-    databaseURL: "https://camelina-godkendt-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "camelina-godkendt",
-    storageBucket: "camelina-godkendt.appspot.com",
-    messagingSenderId: "393442725508",
-    appId: "1:393442725508:web:f25b640497b175756b7cd1"
+  apiKey: "AIzaSyDjpBiMAu5z7lGASSzv3Z-eMqFDYpUgi_0",
+  authDomain: "camelina-godkendt.firebaseapp.com",
+  databaseURL: "https://camelina-godkendt-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "camelina-godkendt",
+  storageBucket: "camelina-godkendt.appspot.com",
+  messagingSenderId: "393442725508",
+  appId: "1:393442725508:web:f25b640497b175756b7cd1"
 };
 
 // Initialiser Firebase-appen
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// Separate ingredienser for at undgå gentagelse
-const ingredientsList = {
-  spaghetti: 'spaghetti',
-  æg: 'æg',
-  bacon: 'bacon',
-  parmesan: 'parmesan',
-  fløde: 'fløde',
-  tomat: 'tomat',
-  løg: 'løg',
-  hvidløg: 'hvidløg',
-  basilikum: 'basilikum',
-  bouillon: 'bouillon',
-  mel: 'mel',
-  mælk: 'mælk',
-  sukker: 'sukker',
-  smør: 'smør',
-  kylling: 'kylling',
-  salat: 'salat',
-  agurk: 'agurk',
-  avocado: 'avocado',
-  pasta: 'pasta',
-  kød: 'kød',
-  tomatsauce: 'tomatsauce',
-  ost: 'ost',
-  bechamelsauce: 'bechamelsauce',
-};
-
-// Opskrifter med referencer til `ingredientsList`, gør det til en reaktiv variabel
+// Opskrifter, som en reaktiv variabel
 const recipes = ref([]);
+
+// Funktion til at gemme opskrift i Firebase
+const saveRecipeToFirebase = (recipe) => {
+  const recipesRef = dbRef(database, 'recipes');
+  push(recipesRef, recipe)
+    .then(() => console.log("Recipe added successfully"))
+    .catch(error => console.error("Error adding recipe:", error));
+};
 
 // Hent data fra Firebase Realtime Database
 const loadRecipesFromFirebase = () => {
   const recipesRef = dbRef(database, 'recipes');
   onValue(recipesRef, (snapshot) => {
     if (snapshot.exists()) {
-      recipes.value = snapshot.val();
+      recipes.value = Object.values(snapshot.val());
     } else {
       console.log('No data available');
     }
@@ -65,16 +46,11 @@ const searchTerm = ref('');
 
 // Computed property til filtrerede opskrifter baseret på søgetermen
 const filteredRecipes = computed(() => {
-  if (!searchTerm.value) return recipes.value; // Returner alle opskrifter, hvis der ikke er nogen søgeterm
+  if (!searchTerm.value) return recipes.value;
 
-  // Filtrer opskrifter baseret på navn eller ingredienser
   return recipes.value.filter(recipe => {
     const lowerCaseSearchTerm = searchTerm.value.toLowerCase();
-
-    // Tjek om søgetermen findes i navnet på opskriften
     const nameMatches = recipe.name.toLowerCase().includes(lowerCaseSearchTerm);
-
-    // Tjek om søgetermen findes i nogen af ingredienserne
     const ingredientMatches = recipe.ingredients.some(ingredient =>
       ingredient.toLowerCase().includes(lowerCaseSearchTerm)
     );
@@ -87,6 +63,16 @@ const filteredRecipes = computed(() => {
 onMounted(() => {
   loadRecipesFromFirebase();
 });
+
+// Eksempel på ny opskrift til tilføjelse
+const newRecipe = {
+  id: recipes.value.length + 1,
+  name: 'Ny Opskrift',
+  ingredients: ['kylling', 'salt', 'peber']
+};
+
+// Tilføj ny opskrift til Firebase
+saveRecipeToFirebase(newRecipe);
 </script>
 
 <template>
