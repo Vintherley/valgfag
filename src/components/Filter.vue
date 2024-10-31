@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
 
@@ -27,6 +27,7 @@ const loadRecipesFromFirebase = () => {
   onValue(recipesRef, (snapshot) => {
     if (snapshot.exists()) {
       recipes.value = Object.values(snapshot.val());
+      console.log("Hentede opskrifter:", recipes.value); // Log data
     } else {
       console.log('No data available');
     }
@@ -46,13 +47,18 @@ const filterRecipes = () => {
 
     filteredRecipes.value = recipes.value.filter(recipe => {
       const nameMatches = recipe.name.toLowerCase().includes(lowerCaseSearchTerm);
-      const ingredientMatches = recipe.ingredients.some(ingredient =>
+      const ingredientMatches = Array.isArray(recipe.ingredients) && recipe.ingredients.some(ingredient =>
         ingredient.toLowerCase().includes(lowerCaseSearchTerm)
       );
       return nameMatches || ingredientMatches;
     });
   }
 };
+
+// Watcher til at opdatere `filteredRecipes` automatisk, når `searchTerm` ændres
+watch(searchTerm, () => {
+  filterRecipes();
+});
 
 // Hent opskrifter, når komponenten loader
 onMounted(() => {
