@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
 
@@ -54,11 +54,6 @@ const filterRecipes = () => {
     });
   }
 };
-
-// Watcher til at opdatere `filteredRecipes` automatisk, når `searchTerm` ændres
-watch(searchTerm, () => {
-  filterRecipes();
-});
 
 // Hent opskrifter, når komponenten loader
 onMounted(() => {
